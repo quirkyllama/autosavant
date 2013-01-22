@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+option java_package = "com.jjs.autosavant.proto";
+option java_multiple_files = true;
+
+message Route {
+	optional fixed64 start_time = 1;
+	optional fixed64 end_time = 2;
+	optional int32 distance = 3;
+	repeated RoutePoint route_point= 4;
+}
+
+message RoutePoint {
+	required float latitude = 1;
+	required float longitude = 2;
+	required fixed64 time = 3;
+}
