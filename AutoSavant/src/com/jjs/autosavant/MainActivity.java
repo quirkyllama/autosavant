@@ -2,7 +2,9 @@ package com.jjs.autosavant;
 
 import java.util.List;
 
+import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.proto.RouteCursorAdapter;
+import com.jjs.autosavant.proto.RouteCursorAdapter.RouteClickListener;
 import com.jjs.autosavant.storage.RouteStorage;
 
 import android.app.Activity;
@@ -21,21 +23,44 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
   private RouteStorage routeStorage;
   private BluetoothListener bluetoothListener;
+  private ShowRouteMap map;
   
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     routeStorage = new RouteStorage(this);
-    setContentView(R.layout.activity_config);
+    showListView();
     bluetoothListener = new BluetoothListener(this);
     if (!bluetoothListener.isConfigured()) {
       configureDevice();
     } else {
       updateDeviceName();
     }
-    ListView listView = (ListView) findViewById(R.id.routeList);
-    listView.setAdapter(new RouteCursorAdapter(this, routeStorage));
   }
+
+  private void showListView() {
+    setContentView(R.layout.activity_config);
+    final ListView listView = (ListView) findViewById(R.id.routeList);
+    listView.setAdapter(new RouteCursorAdapter(this, routeStorage, new RouteClickListener(){
+      @Override
+      public void onClick(Route route) {
+          map = new ShowRouteMap(MainActivity.this, listView.getWidth(), listView.getHeight(), route);
+          map.show();
+      }}
+    ));
+  }
+
+  @Override
+  public void onBackPressed() {
+    if (map != null) {
+      showListView();
+      map.hide();
+      map = null;
+    } else {
+      super.onBackPressed();
+    }
+  }
+
 
   private void configureDevice() {
      List<BluetoothDevice> devices = BluetoothListener.getDevices();

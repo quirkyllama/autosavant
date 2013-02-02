@@ -8,6 +8,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
 import android.widget.TextView;
@@ -17,16 +18,30 @@ public class RouteCursorAdapter extends CursorAdapter {
   private static final long MILLIS_PER_HOUR = 60 * MILLIS_PER_MINUTE;
   
   private final RouteStorage storage;
+  private final RouteClickListener listener;
   
-  public RouteCursorAdapter(Context context, RouteStorage storage) {
+  public interface RouteClickListener {
+    public void onClick(Route route);
+  }
+  
+  public RouteCursorAdapter(Context context, RouteStorage storage, RouteClickListener listener) {
     super(context, storage.getRouteCursor(), FLAG_REGISTER_CONTENT_OBSERVER);
     this.storage = storage;
+    this.listener = listener;
   }
 
   @Override
   public void bindView(View view, Context context, Cursor cursor) {
     TextView dateView = (TextView) view.findViewById(R.id.routeListDate);
-    Route route = storage.parseFromCursor(cursor);
+    final Route route = storage.parseFromCursor(cursor);
+    view.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        System.err.println("Click on route");
+        listener.onClick(route);
+      }
+    });
+    
     long routeStart = route.getStartTime();
     long now = System.currentTimeMillis();
     long ago = now - routeStart;
