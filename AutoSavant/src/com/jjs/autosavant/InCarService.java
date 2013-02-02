@@ -8,18 +8,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationCompat.Builder;
 import android.util.Log;
 
 import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.proto.RoutePoint;
+import com.jjs.autosavant.storage.RouteStorage;
 
 public class InCarService extends Service {
   private static final String PREF = "InCarServicePrefs";
@@ -27,9 +31,10 @@ public class InCarService extends Service {
   private static final String LAST_LOCATION_LAT = "LastLat";
   private static final String LAST_LOCATION_LONG = "LastLong";
 
-  private static final long TIME_BETWEEN_GPS = 15000;
+  private static final long TIME_BETWEEN_GPS = 5000;
   private static final long MAX_TIME_SINCE_LAST_LOCATION = 5000;
-  private static final float MIN_DISTANCE_ACCURACY = 15;
+  private static final float MIN_DISTANCE_ACCURACY = 30;
+  private static final long MAX_TIME_WAIT_LAST_LOCATION = 15000;
 
   private Route.Builder routeBuilder;
   
@@ -38,6 +43,7 @@ public class InCarService extends Service {
   private boolean isEnded = false;
   private long lastLocationTime = 0;
   
+  private final Object lockObject = new Object();
   private LocationManager locationManager;
   private LocationListener locationListener;
 
@@ -94,6 +100,33 @@ public class InCarService extends Service {
       saveLastLocation();
     } else {
       shouldEnd = true;
+      new Thread(new Runnable() {
+        
+        @Override
+        public void run() {
+          Log.v(TAG, "InCarService end thread.  Already ended: " + isEnded);
+          if (!isEnded) {
+            try {
+              Thread.sleep(MAX_TIME_WAIT_LAST_LOCATION);
+            } catch (InterruptedException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
+            synchronized (lockObject) {
+              if (!isEnded) {
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.post(new Runnable() {
+                  @Override
+                  public void run() {
+                    Log.v(TAG, "Calling end from wait thread");
+                    saveLastLocation();
+                  }                
+                });
+              }
+            }
+          }
+        }
+      }).start();
     }
   }
 
@@ -139,9 +172,10 @@ public class InCarService extends Service {
       public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
       }
     }; 
+    Criteria criteria = new Criteria();
+    criteria.setAccuracy(Criteria.ACCURACY_FINE);
     locationManager.requestLocationUpdates(
-        LocationManager.GPS_PROVIDER, 
-        TIME_BETWEEN_GPS, 0, locationListener);
+        TIME_BETWEEN_GPS, 8, criteria, locationListener, null);
   }
 
   private void updateLocation(Location location) {
@@ -150,9 +184,9 @@ public class InCarService extends Service {
       Log.i(TAG, "Location Update after end!");
       return;
     }
-    if (location.getAccuracy() < MIN_DISTANCE_ACCURACY) {
-      lastLocationTime = location.getTime();
-      RoutePoint routePoint = 
+    if (location.getAccuracy() < MIN_DISTANCE_ACCURACY ||
+        System.currentTimeMillis() - routeBuilder.getEndTime() > MAX_TIME_WAIT_LAST_LOCATION) {
+      lastLocationTime = location.getTime(); 
           routeBuilder.addRoutePointBuilder()
           .setTime(location.getTime())
           .setLatitude((float) location.getLatitude())
@@ -166,12 +200,16 @@ public class InCarService extends Service {
 
   private void saveLastLocation() {
     Log.v(TAG, "Saving Last Location: " + isEnded);
-    if (isEnded) {
-      return;
-    } 
+    synchronized (lockObject) {
+      if (isEnded) {
+        return;
+      } 
+      isEnded = true;
+    }
+
     double distance = calculateDistance();
     long time = routeBuilder.getEndTime() - routeBuilder.getStartTime();
-    isEnded = true;
+    routeBuilder.setDistance((int) distance);
     SharedPreferences prefs = 
         getSharedPreferences(PREF, Context.MODE_PRIVATE);
     Builder notification = new NotificationCompat.Builder(this)
@@ -206,6 +244,7 @@ public class InCarService extends Service {
     NotificationManager mNotificationManager =
         (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
     mNotificationManager.notify(1, notification.build());
+    new RouteStorage(this).saveRoute(routeBuilder.build());
     stopSelf();
   }
 

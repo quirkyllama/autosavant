@@ -2,6 +2,9 @@ package com.jjs.autosavant;
 
 import java.util.List;
 
+import com.jjs.autosavant.proto.RouteCursorAdapter;
+import com.jjs.autosavant.storage.RouteStorage;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -12,15 +15,17 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
+import android.widget.ListView;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
-
+  private RouteStorage routeStorage;
   private BluetoothListener bluetoothListener;
   
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    routeStorage = new RouteStorage(this);
     setContentView(R.layout.activity_config);
     bluetoothListener = new BluetoothListener(this);
     if (!bluetoothListener.isConfigured()) {
@@ -28,6 +33,8 @@ public class MainActivity extends Activity {
     } else {
       updateDeviceName();
     }
+    ListView listView = (ListView) findViewById(R.id.routeList);
+    listView.setAdapter(new RouteCursorAdapter(this, routeStorage));
   }
 
   private void configureDevice() {
