@@ -6,8 +6,10 @@ import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.proto.RoutePoint;
@@ -53,11 +55,17 @@ public class ShowRouteMap {
 
   private void showRoute() {
     PolylineOptions rectOptions = new PolylineOptions();
+    LatLng latLng = null;
     for (RoutePoint point : route.getRoutePointList()) {
-      LatLng latLng = new LatLng(point.getLatitude(), point.getLongitude());
+      latLng = new LatLng(point.getLatitude(), point.getLongitude());
       rectOptions.add(latLng);
     }
     rectOptions.color(Color.BLUE);
     map.addPolyline(rectOptions);
-  }  
+    MarkerOptions endMarker = new MarkerOptions();
+    endMarker.position(latLng);
+    endMarker.title("Parking Spot @ " + RouteCursorAdapter.getRouteTimeAgo(route));
+    endMarker.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher));
+    map.addMarker(endMarker);
+  }
 }

@@ -2,9 +2,8 @@ package com.jjs.autosavant;
 
 import java.util.List;
 
+import com.jjs.autosavant.RouteCursorAdapter.RouteClickListener;
 import com.jjs.autosavant.proto.Route;
-import com.jjs.autosavant.proto.RouteCursorAdapter;
-import com.jjs.autosavant.proto.RouteCursorAdapter.RouteClickListener;
 import com.jjs.autosavant.storage.RouteStorage;
 
 import android.app.Activity;
@@ -13,6 +12,7 @@ import android.app.Dialog;
 import android.app.DialogFragment;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,7 +23,7 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
   private RouteStorage routeStorage;
   private BluetoothListener bluetoothListener;
-  private ShowRouteMap map;
+  //private ShowRouteMap map;
   
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -44,22 +44,25 @@ public class MainActivity extends Activity {
     listView.setAdapter(new RouteCursorAdapter(this, routeStorage, new RouteClickListener(){
       @Override
       public void onClick(Route route) {
-          map = new ShowRouteMap(MainActivity.this, listView.getWidth(), listView.getHeight(), route);
-          map.show();
+        Intent intent = new Intent(MainActivity.this, ShowRouteMapActivity.class);
+        intent.putExtra(ShowRouteMapActivity.SHOW_ROUTE_EXTRA_PROTO, route.toByteArray());
+//          map = new ShowRouteMap(MainActivity.this, listView.getWidth(), listView.getHeight(), route);
+//          map.show();
+        startActivity(intent);
       }}
     ));
   }
 
-  @Override
-  public void onBackPressed() {
-    if (map != null) {
-      showListView();
-      map.hide();
-      map = null;
-    } else {
-      super.onBackPressed();
-    }
-  }
+//  @Override
+//  public void onBackPressed() {
+//    if (map != null) {
+//      showListView();
+//      map.hide();
+//      map = null;
+//    } else {
+//      super.onBackPressed();
+//    }
+//  }
 
 
   private void configureDevice() {

@@ -26,15 +26,17 @@ import com.jjs.autosavant.proto.RoutePoint;
 import com.jjs.autosavant.storage.RouteStorage;
 
 public class InCarService extends Service {
+  private static final int METERS_TO_MILES = 1600;
   private static final String PREF = "InCarServicePrefs";
   private static final String TAG = "InCarService";
   private static final String LAST_LOCATION_LAT = "LastLat";
   private static final String LAST_LOCATION_LONG = "LastLong";
 
-  private static final long TIME_BETWEEN_GPS = 5000;
+  private static final long TIME_BETWEEN_GPS = 3000;
   private static final long MAX_TIME_SINCE_LAST_LOCATION = 5000;
   private static final float MIN_DISTANCE_ACCURACY = 30;
   private static final long MAX_TIME_WAIT_LAST_LOCATION = 15000;
+  private static final int NOTIFICATION_ID = 1;
 
   private Route.Builder routeBuilder;
   
@@ -42,6 +44,7 @@ public class InCarService extends Service {
   private boolean shouldEnd = false;
   private boolean isEnded = false;
   private long lastLocationTime = 0;
+  private long lastNotificationTime = 0;
   
   private final Object lockObject = new Object();
   private LocationManager locationManager;
@@ -80,7 +83,7 @@ public class InCarService extends Service {
 
     Log.v(TAG, "In mode: " + isStart);
     if (isStart) {
-      handleStart();
+      handleStart();   
     } else {
       if (!isRunning) {
         Log.i(TAG,  "Got END command, but not running- ignoring");
@@ -100,8 +103,7 @@ public class InCarService extends Service {
       saveLastLocation();
     } else {
       shouldEnd = true;
-      new Thread(new Runnable() {
-        
+      new Thread(new Runnable() {       
         @Override
         public void run() {
           Log.v(TAG, "InCarService end thread.  Already ended: " + isEnded);
@@ -109,8 +111,6 @@ public class InCarService extends Service {
             try {
               Thread.sleep(MAX_TIME_WAIT_LAST_LOCATION);
             } catch (InterruptedException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
             }
             synchronized (lockObject) {
               if (!isEnded) {
@@ -147,15 +147,7 @@ public class InCarService extends Service {
     routeBuilder.setStartTime(System.currentTimeMillis());
     Log.v(TAG, "Handle Location startxxx");
     
-    Notification notification = new NotificationCompat.Builder(this)
-    .setSmallIcon(R.drawable.ic_stat_parking_spot)
-    .setAutoCancel(true)
-    .setTicker("AutoSavant Running")
-    .setContentTitle("AutoSavant Running")
-    .build();
-    NotificationManager mNotificationManager =
-        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-    mNotificationManager.notify(1, notification);
+    postNotification(routeBuilder);
     locationListener = new LocationListener() {
       @Override
       public void onLocationChanged(Location location) {
@@ -175,7 +167,30 @@ public class InCarService extends Service {
     Criteria criteria = new Criteria();
     criteria.setAccuracy(Criteria.ACCURACY_FINE);
     locationManager.requestLocationUpdates(
-        TIME_BETWEEN_GPS, 8, criteria, locationListener, null);
+        TIME_BETWEEN_GPS, 1, criteria, locationListener, null);
+  }
+
+  public void postNotification(Route.Builder routeBuilder) {
+    if (System.currentTimeMillis() - lastNotificationTime < 60 * 1000) {
+      return;
+    }
+    lastNotificationTime = System.currentTimeMillis();
+    double distance = calculateDistance();
+    long time = System.currentTimeMillis()- routeBuilder.getStartTime();
+    String content = String.format("Time: %d minutes", time / 60000);
+    String body = String.format("Distance: %1.1fmiles", distance / METERS_TO_MILES);
+    Notification notification = new NotificationCompat.Builder(this)
+        .setSmallIcon(R.drawable.ic_stat_parking_spot)
+        .setAutoCancel(true)
+        .setTicker("AutoSavant Running")
+        .setContentTitle(content)
+        .setContentText(body)
+        .setContentIntent(createPendingRouteIntent(routeBuilder.build()))
+        .build();
+    
+    NotificationManager mNotificationManager =
+        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    mNotificationManager.notify(NOTIFICATION_ID, notification);
   }
 
   private void updateLocation(Location location) {
@@ -184,6 +199,8 @@ public class InCarService extends Service {
       Log.i(TAG, "Location Update after end!");
       return;
     }
+    postNotification(routeBuilder);
+
     if (location.getAccuracy() < MIN_DISTANCE_ACCURACY ||
         System.currentTimeMillis() - routeBuilder.getEndTime() > MAX_TIME_WAIT_LAST_LOCATION) {
       lastLocationTime = location.getTime(); 
@@ -210,12 +227,13 @@ public class InCarService extends Service {
     double distance = calculateDistance();
     long time = routeBuilder.getEndTime() - routeBuilder.getStartTime();
     routeBuilder.setDistance((int) distance);
+    Route route = routeBuilder.build();
     SharedPreferences prefs = 
         getSharedPreferences(PREF, Context.MODE_PRIVATE);
     Builder notification = new NotificationCompat.Builder(this)
     .setSmallIcon(R.drawable.ic_stat_parking_spot)
     .setAutoCancel(true);
-
+    
     if (routeBuilder.getRoutePointCount() == 0) {
       notification.setContentTitle("No parking spot saved!");
     } else {
@@ -227,25 +245,32 @@ public class InCarService extends Service {
       editor.putFloat(LAST_LOCATION_LONG, (float) lastLocation.getLongitude());
       editor.apply();
 
-      Intent mapIntent = new Intent(android.content.Intent.ACTION_VIEW, 
-          Uri.parse(
-              String.format("geo:0,0?q=%8f,%8f (Parking Spot)", 
-                  lastLocation.getLatitude(), lastLocation.getLongitude())));
-
-      PendingIntent pendingIntent = 
-          PendingIntent.getActivity(this, 0, mapIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+//      Intent mapIntent = new Intent(android.content.Intent.ACTION_VIEW, 
+//          Uri.parse(
+//              String.format("geo:0,0?q=%8f,%8f (Parking Spot)", 
+//                  lastLocation.getLatitude(), lastLocation.getLongitude())));
+      PendingIntent pendingIntent = createPendingRouteIntent(route);
       notification
       .setContentIntent(pendingIntent)
       .setTicker("Parking Spot Saved")
-      .setContentTitle("View parking spot")
-      .setContentText(String.format("Distance Driven: %1.1f miles\nTime: %d minutes", 
-          distance / 1600f, time / 60000));
+      .setContentTitle("Click to view parking spot")
+      .setContentText(
+          String.format("Distance: %1.1f miles\nTime: %d minutes", 
+              distance / 1600f, time / 60000));
     }
-    NotificationManager mNotificationManager =
+    NotificationManager notificationManager =
         (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-    mNotificationManager.notify(1, notification.build());
-    new RouteStorage(this).saveRoute(routeBuilder.build());
+    notificationManager.notify(1, notification.build());
+    new RouteStorage(this).saveRoute(route);
     stopSelf();
+  }
+
+  public PendingIntent createPendingRouteIntent(Route route) {
+    Intent mapIntent = new Intent(this, ShowRouteMapActivity.class);
+    mapIntent.putExtra(ShowRouteMapActivity.SHOW_ROUTE_EXTRA_PROTO, route.toByteArray());
+    PendingIntent pendingIntent = 
+        PendingIntent.getActivity(this, 0, mapIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+    return pendingIntent;
   }
 
   private double calculateDistance() {
