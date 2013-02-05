@@ -32,7 +32,6 @@ public class RouteStorage {
 
     database = 
         new CreateDatabase(context).getWritableDatabase(); 
-    
   }
 
 
@@ -63,6 +62,7 @@ public class RouteStorage {
         Log.v(TAG, e.getMessage());
       }
     }
+    cursor.close();
     return routes;
   }
 
