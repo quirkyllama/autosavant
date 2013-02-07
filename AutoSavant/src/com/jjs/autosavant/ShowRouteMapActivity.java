@@ -19,6 +19,8 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MenuItem.OnMenuItemClickListener;
 
 public class ShowRouteMapActivity extends Activity {
   public static final String SHOW_ROUTE_EXTRA_PROTO = "ShowRouteProto";
@@ -42,12 +44,11 @@ public class ShowRouteMapActivity extends Activity {
       e.printStackTrace();
       finish();
     }
-    
+    setTitle(RouteCursorAdapter.getRouteTime(route));
     setContentView(R.layout.activity_show_route_map);
     RouteCursorAdapter.setupListView(findViewById(R.id.routeText), route);
     map = ((MapFragment) getFragmentManager().findFragmentById(R.id.bigMap)).getMap();
     map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-    System.err.println("Showing map");
     Point size = new Point();
     getWindowManager().getDefaultDisplay().getSize(size);
     CameraUpdate cameraUpdate = 
@@ -58,8 +59,29 @@ public class ShowRouteMapActivity extends Activity {
 
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
-    // Inflate the menu; this adds items to the action bar if it is present.
     getMenuInflater().inflate(R.menu.activity_show_route_map, menu);
+    MenuItem item = menu.findItem(R.id.satellite);
+    item.setVisible(map.getMapType() == GoogleMap.MAP_TYPE_NORMAL);
+    item.setOnMenuItemClickListener(
+        new OnMenuItemClickListener() {                 
+          @Override
+          public boolean onMenuItemClick(MenuItem item) {
+            map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+            invalidateOptionsMenu();
+            return true;
+          }
+        });
+    item = menu.findItem(R.id.map);
+    item.setVisible(map.getMapType() != GoogleMap.MAP_TYPE_NORMAL);
+    item.setOnMenuItemClickListener(
+        new OnMenuItemClickListener() {                 
+          @Override
+          public boolean onMenuItemClick(MenuItem item) {
+            map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+            invalidateOptionsMenu();
+            return true;
+          }
+        });
     return true;
   }
 

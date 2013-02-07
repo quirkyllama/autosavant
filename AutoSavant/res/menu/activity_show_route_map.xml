@@ -1,9 +1,5 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
-
-    <item
-        android:id="@+id/menu_settings"
-        android:orderInCategory="100"
-        android:showAsAction="never"
-        android:title="@string/menu_settings"/>
+    <item android:id="@+id/satellite" android:titleCondensed="Satellite" android:title="Satellite View" android:icon="@drawable/ic_satellite"></item>
+    <item android:id="@+id/map" android:titleCondensed="Map" android:title="Map View"></item>
 
 </menu>
