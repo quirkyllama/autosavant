@@ -39,6 +39,7 @@ public class InCarService extends Service {
   @Override
   public void onCreate() {
     super.onCreate();
+    Log.v(TAG, "InCarService.onCreate");
     routeTracker = new RouteTracker(
         (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE), this); 
   }

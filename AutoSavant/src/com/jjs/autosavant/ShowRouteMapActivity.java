@@ -90,6 +90,7 @@ public class ShowRouteMapActivity extends Activity {
     endMarker.position(latLng);
     endMarker.title("Parking Spot @ " + RouteCursorAdapter.getRouteTimeAgo(route));
     endMarker.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher));
+    endMarker.anchor(0.5f, 0.5f);
     map.addMarker(endMarker);
   }
 }
