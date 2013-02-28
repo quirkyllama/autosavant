@@ -1,5 +1,5 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
     <item android:id="@+id/satellite" android:titleCondensed="Satellite" android:title="Satellite View" android:icon="@drawable/ic_satellite"></item>
     <item android:id="@+id/map" android:titleCondensed="Map" android:title="Map View"></item>
-
+    <item android:id="@+id/settings_for_place" android:titleCondensed="Place Settings" android:title="Settings for this spot"></item>  
 </menu>

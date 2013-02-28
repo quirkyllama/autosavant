@@ -1,7 +1,9 @@
 package com.jjs.autosavant;
 
 import com.jjs.autosavant.R;
+import com.jjs.autosavant.proto.Place;
 import com.jjs.autosavant.proto.Route;
+import com.jjs.autosavant.storage.PlaceStorage;
 import com.jjs.autosavant.storage.RouteStorage;
 
 import android.app.Activity;
@@ -20,24 +22,25 @@ public class RouteCursorAdapter extends CursorAdapter {
   private static final long MILLIS_PER_HOUR = 60 * MILLIS_PER_MINUTE;
   private static final String DATE_FORMAT = "E, MMMM dd, yyyy h:mmaa";
   private static final DateFormat dateFormat = new DateFormat();
-  
   private final RouteStorage storage;
+  private final PlaceStorage placeStorage;
   private final RouteClickListener listener;
   
   public interface RouteClickListener {
     public void onClick(Route route);
   }
   
-  public RouteCursorAdapter(Context context, RouteStorage storage, RouteClickListener listener) {
+  public RouteCursorAdapter(Context context, RouteStorage storage, PlaceStorage placeStorage, RouteClickListener listener) {
     super(context, storage.getRouteCursor(), FLAG_REGISTER_CONTENT_OBSERVER);
     this.storage = storage;
     this.listener = listener;
+    this.placeStorage = placeStorage;
   }
 
   @Override
   public void bindView(View view, Context context, Cursor cursor) {
     final Route route = storage.parseFromCursor(cursor);
-    setupListView(view, route);
+    setupListView(view, route, placeStorage);
     view.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -47,9 +50,13 @@ public class RouteCursorAdapter extends CursorAdapter {
     });
   }
 
-  public static void setupListView(View view, final Route route) {
+  public static void setupListView(View view, final Route route, PlaceStorage placeStorage) {
+    Place place = placeStorage.getPlaceForRoute(route.getRoutePoint(route.getRoutePointCount() - 1));
     TextView dateView = (TextView) view.findViewById(R.id.routeListDate); 
     String dateString = getRouteTimeAgo(route);
+    if (place != null) {
+      dateString = "To: " + place.getName() + dateString;
+    }
     
     dateView.setText(dateString);
     TextView distanceView = (TextView) view.findViewById(R.id.routeListDistance);
@@ -61,7 +68,7 @@ public class RouteCursorAdapter extends CursorAdapter {
   }
 
   public static String getRouteDistance(final Route route) {
-    return String.format("Distance: %1.1f", route.getDistance() / 1600.0);
+    return String.format("%1.1fmi", route.getDistance() / 1600.0);
   }
 
   public static String getRouteTimeAgo(final Route route) {

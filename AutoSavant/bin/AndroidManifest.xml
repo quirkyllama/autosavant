@@ -62,6 +62,10 @@
             android:name="com.jjs.autosavant.ShowRouteMapActivity"
             android:label="@string/title_activity_show_route_map" >
         </activity>
+        <activity
+            android:name="com.jjs.autosavant.PlaceSettings"
+            android:label="@string/title_activity_place_settings" >
+        </activity>
     </application>
 
 </manifest>

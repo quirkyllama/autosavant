@@ -34,6 +34,14 @@ public class RouteStorage {
         new CreateDatabase(context).getWritableDatabase(); 
   }
 
+  public void cleanRoutes() {
+    List<Route> routes = getRoutes();
+    for (Route route : routes) {
+      if (route.getRoutePointCount() < 2) {
+        deleteRoute(route);
+      }
+    }
+  }
 
   public Route parseFromCursor(Cursor cursor) {
     byte[] data = cursor.getBlob(1);
@@ -50,12 +58,10 @@ public class RouteStorage {
   public List<Route> getRoutes() {
     Cursor cursor = getRouteCursor();
     List<Route> routes = new ArrayList<Route>();
-    while (!cursor.isAfterLast()) {
-      cursor.moveToNext();
+    while (cursor.moveToNext()) {
       byte[] data = cursor.getBlob(1);
       try {
-        Route route = Route.parseFrom(data);
-        routes.add(route);
+        routes.add(Route.parseFrom(data));
       } catch (InvalidProtocolBufferException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
@@ -87,6 +93,11 @@ public class RouteStorage {
       e.printStackTrace();
       Log.v(TAG, "Error saving route: " + e.getMessage());
     }
+  }
+
+  private void deleteRoute(Route route) {
+    System.err.println("Deleting: " + route.toString());
+    database.delete(ROUTE_TABLE, DATE_COLUMN + " = ?", new String[] {"" + route.getEndTime()});  
   }
 
   static class CreateDatabase extends SQLiteOpenHelper {

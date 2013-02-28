@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.jjs.autosavant.RouteCursorAdapter.RouteClickListener;
 import com.jjs.autosavant.proto.Route;
+import com.jjs.autosavant.storage.PlaceStorage;
 import com.jjs.autosavant.storage.RouteStorage;
 
 import android.app.Activity;
@@ -22,6 +23,7 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
   private RouteStorage routeStorage;
+  private PlaceStorage placeStorage;
   private BluetoothListener bluetoothListener;
   //private ShowRouteMap map;
   
@@ -29,6 +31,8 @@ public class MainActivity extends Activity {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     routeStorage = new RouteStorage(this);
+    routeStorage.cleanRoutes();
+    placeStorage = new PlaceStorage(this);
     showListView();
     bluetoothListener = new BluetoothListener(this);
     if (!bluetoothListener.isConfigured()) {
@@ -41,29 +45,15 @@ public class MainActivity extends Activity {
   private void showListView() {
     setContentView(R.layout.activity_config);
     final ListView listView = (ListView) findViewById(R.id.routeList);
-    listView.setAdapter(new RouteCursorAdapter(this, routeStorage, new RouteClickListener(){
+    listView.setAdapter(new RouteCursorAdapter(this, routeStorage, placeStorage, new RouteClickListener() {
       @Override
       public void onClick(Route route) {
         Intent intent = new Intent(MainActivity.this, ShowRouteMapActivity.class);
         intent.putExtra(ShowRouteMapActivity.SHOW_ROUTE_EXTRA_PROTO, route.toByteArray());
-//          map = new ShowRouteMap(MainActivity.this, listView.getWidth(), listView.getHeight(), route);
-//          map.show();
         startActivity(intent);
       }}
     ));
   }
-
-//  @Override
-//  public void onBackPressed() {
-//    if (map != null) {
-//      showListView();
-//      map.hide();
-//      map = null;
-//    } else {
-//      super.onBackPressed();
-//    }
-//  }
-
 
   private void configureDevice() {
      List<BluetoothDevice> devices = BluetoothListener.getDevices();

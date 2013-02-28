@@ -7,11 +7,19 @@ message Route {
 	optional fixed64 start_time = 1;
 	optional fixed64 end_time = 2;
 	optional int32 distance = 3;
-	repeated RoutePoint route_point= 4;
+	repeated RoutePoint route_point = 4;
 }
 
 message RoutePoint {
 	required float latitude = 1;
 	required float longitude = 2;
 	required fixed64 time = 3;
+}
+
+message Place {
+	optional fixed64 time = 1;
+	required float latitude = 2;
+	required float longitude = 3;
+	optional string name = 4;
+	optional bool ignored = 5;
 }
