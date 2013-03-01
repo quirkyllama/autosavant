@@ -137,7 +137,7 @@ public class ShowRouteMapActivity extends Activity {
       latLng = new LatLng(point.getLatitude(), point.getLongitude());
       rectOptions.add(latLng);
     }
-    rectOptions.color(Color.BLUE);
+    rectOptions.color(0xA00080FF);
     map.addPolyline(rectOptions);
     MarkerOptions endMarker = new MarkerOptions();
     endMarker.position(latLng);

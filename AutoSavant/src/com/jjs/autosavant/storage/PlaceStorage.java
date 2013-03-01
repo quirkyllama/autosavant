@@ -99,7 +99,7 @@ public class PlaceStorage {
       content.put(DATE_COLUMN, time);
       content.put(PROTO_COLUMN, os.toByteArray());
       if (update) {
-       database.update(PLACE_TABLE, content, "DATE_COLUMN = ?", new String[] {"" + time}); 
+       database.update(PLACE_TABLE, content, DATE_COLUMN +  " = ?", new String[] {"" + time}); 
       } else {
         database.insert(PLACE_TABLE, null, content);
       }

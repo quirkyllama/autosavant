@@ -15,8 +15,10 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationCompat.Builder;
 import android.util.Log;
 
+import com.jjs.autosavant.proto.Place;
 import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.proto.RoutePoint;
+import com.jjs.autosavant.storage.PlaceStorage;
 import com.jjs.autosavant.storage.RouteStorage;
 
 public class InCarService extends Service {
@@ -82,6 +84,9 @@ public class InCarService extends Service {
   }
 
   public void postNotification(Route.Builder routeBuilder) {
+    NotificationManager notificationManager =
+        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    
     if (System.currentTimeMillis() - lastNotificationTime < 60 * 1000) {
       return;
     }
@@ -99,13 +104,13 @@ public class InCarService extends Service {
         .setContentIntent(createPendingRouteIntent(routeBuilder.build()))
         .build();
     
-    NotificationManager mNotificationManager =
-        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-    mNotificationManager.notify(NOTIFICATION_ID, notification);
+    notificationManager.notify(NOTIFICATION_ID, notification);
   }
 
   public void saveLastLocation(Route.Builder routeBuilder) {
     Log.v(TAG, "Saving Last Location: ");
+    NotificationManager notificationManager =
+        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
     double distance = calculateDistance(routeBuilder);
     long time = routeBuilder.getEndTime() - routeBuilder.getStartTime();
@@ -116,31 +121,40 @@ public class InCarService extends Service {
     Builder notification = new NotificationCompat.Builder(this)
     .setSmallIcon(R.drawable.ic_stat_parking_spot)
     .setAutoCancel(true);
-    
+
     if (routeBuilder.getRoutePointCount() == 0) {
       notification.setContentTitle("No parking spot saved!");
+      notificationManager.notify(1, notification.build());
     } else {
-      RoutePoint lastLocation = 
-          routeBuilder.getRoutePoint(routeBuilder.getRoutePointCount() - 1);
-      Editor editor = prefs.edit();
+      PlaceStorage placeStorage = new PlaceStorage(this);
+      Place place = placeStorage.getPlaceForRoute(RouteUtils.getLastRoutePoint(routeBuilder));
+      if (place != null && place.getIgnored()) {
+        System.err.println("Ignoring parking spot @ Place: " + place.getName());
+        notificationManager.cancel(NOTIFICATION_ID);
+      } else {
+        RoutePoint lastLocation = 
+            routeBuilder.getRoutePoint(routeBuilder.getRoutePointCount() - 1);
+        Editor editor = prefs.edit();
 
-      editor.putFloat(LAST_LOCATION_LAT, (float) lastLocation.getLatitude());
-      editor.putFloat(LAST_LOCATION_LONG, (float) lastLocation.getLongitude());
-      editor.apply();
-
-      PendingIntent pendingIntent = createPendingRouteIntent(route);
-      notification
-      .setContentIntent(pendingIntent)
-      .setTicker("Parking Spot Saved")
-      .setContentTitle("Click to view parking spot")
-      .setContentText(
-          String.format("Distance: %1.1f miles\nTime: %d minutes", 
-              distance / 1600f, time / 60000));
+        editor.putFloat(LAST_LOCATION_LAT, (float) lastLocation.getLatitude());
+        editor.putFloat(LAST_LOCATION_LONG, (float) lastLocation.getLongitude());
+        editor.apply();
+        String ticker = "Parking Spot Saved";
+        if (place != null) {
+          ticker = ticker + " @ " + place.getName();
+        }
+        PendingIntent pendingIntent = createPendingRouteIntent(route);
+        notification
+        .setContentIntent(pendingIntent)
+        .setTicker(ticker)
+        .setContentTitle("Click to view parking spot")
+        .setContentText(
+            String.format("Distance: %1.1f miles\nTime: %d minutes", 
+                distance / 1600f, time / 60000));
+        notificationManager.notify(1, notification.build());
+      }
+      new RouteStorage(this).saveRoute(route);
     }
-    NotificationManager notificationManager =
-        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-    notificationManager.notify(1, notification.build());
-    new RouteStorage(this).saveRoute(route);
     stopSelf();
   }
 
