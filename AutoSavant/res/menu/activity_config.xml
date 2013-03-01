@@ -1,16 +1,15 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
-
     <item
         android:id="@+id/menu_settings"
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="@string/menu_settings"/>
+
     <item android:id="@+id/bluetooth_pick" 
         android:checkable="false" 
         android:enabled="true" 
         android:title="Pick Bluetooth Device" 
         android:titleCondensed="Bluetooth" 
         android:icon="@drawable/ic_action_bluetooth_pick" 
-        android:checked="false"></item>
-
+        android:checked="false"/>
 </menu>

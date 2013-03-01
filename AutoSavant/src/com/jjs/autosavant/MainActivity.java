@@ -25,7 +25,6 @@ public class MainActivity extends Activity {
   private RouteStorage routeStorage;
   private PlaceStorage placeStorage;
   private BluetoothListener bluetoothListener;
-  //private ShowRouteMap map;
   
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -37,15 +36,14 @@ public class MainActivity extends Activity {
     bluetoothListener = new BluetoothListener(this);
     if (!bluetoothListener.isConfigured()) {
       configureDevice();
-    } else {
-      updateDeviceName();
     }
   }
 
   private void showListView() {
     setContentView(R.layout.activity_config);
     final ListView listView = (ListView) findViewById(R.id.routeList);
-    listView.setAdapter(new RouteCursorAdapter(this, routeStorage, placeStorage, new RouteClickListener() {
+    listView.setAdapter(
+        new RouteCursorAdapter(this, routeStorage, placeStorage, new RouteClickListener() {
       @Override
       public void onClick(Route route) {
         Intent intent = new Intent(MainActivity.this, ShowRouteMapActivity.class);
@@ -82,12 +80,6 @@ public class MainActivity extends Activity {
 
   protected void selectDevice(BluetoothDevice bluetoothDevice) {
     bluetoothListener.selectDevice(bluetoothDevice);
-    updateDeviceName();
-  }
-
-  private void updateDeviceName() {
-    ((TextView) findViewById(R.id.deviceNameLabel))
-      .setText(bluetoothListener.getSelectedDevice());
   }
 
   public class ChooseDeviceDialogFragment extends DialogFragment {
@@ -134,6 +126,6 @@ public class MainActivity extends Activity {
   protected void onResume() {
     super.onResume();
     placeStorage.update();
+    showListView();
   }
-  
 }

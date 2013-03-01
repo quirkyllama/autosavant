@@ -1,6 +1,20 @@
 package com.jjs.autosavant;
 
-import java.util.List;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.content.DialogInterface;
+import android.graphics.Color;
+import android.graphics.Point;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MenuItem.OnMenuItemClickListener;
+import android.view.View;
+import android.widget.CheckBox;
+import android.widget.EditText;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -12,29 +26,11 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.jjs.autosavant.MainActivity.ChooseDeviceDialogFragment;
 import com.jjs.autosavant.proto.Place;
 import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.proto.RoutePoint;
 import com.jjs.autosavant.storage.PlaceStorage;
 import com.jjs.autosavant.storage.RouteStorage;
-
-import android.os.Bundle;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.DialogFragment;
-import android.bluetooth.BluetoothDevice;
-import android.content.DialogInterface;
-import android.graphics.Color;
-import android.graphics.Point;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.MenuItem.OnMenuItemClickListener;
-import android.view.View;
-import android.widget.CheckBox;
-import android.widget.EditText;
 
 public class ShowRouteMapActivity extends Activity {
   public static final String SHOW_ROUTE_EXTRA_PROTO = "ShowRouteProto";
@@ -45,6 +41,7 @@ public class ShowRouteMapActivity extends Activity {
   private Route route;
   private GoogleMap map;
   private PlaceStorage storage;
+  private RouteStorage routeStorage;
   
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -108,6 +105,13 @@ public class ShowRouteMapActivity extends Activity {
         showSettingDialog();
         return true;
       }});
+    item = menu.findItem(R.id.delete_route);
+    item.setOnMenuItemClickListener(new OnMenuItemClickListener() {
+      @Override
+      public boolean onMenuItemClick(MenuItem item) {
+        showDeleteRouteDialog();
+        return true;
+      }});
         
     return true;
   }
@@ -150,13 +154,57 @@ public class ShowRouteMapActivity extends Activity {
     dialogFragment.show(getFragmentManager(), "PlaceSettings");
   }
 
+  protected void showDeleteRouteDialog() {
+    DeleteDialogFragment dialogFragment = new DeleteDialogFragment(this, route);
+    dialogFragment.show(getFragmentManager(), "DeleteRoute");
+  }
+
+  public static class DeleteDialogFragment extends DialogFragment {
+    private final Route route;
+    private RouteStorage storage;
+    private Activity activity;
+    
+    public DeleteDialogFragment(Activity activity, Route route) {
+      this.route = route;
+      this.activity = activity;
+      this.storage = new RouteStorage(activity);
+    }
+
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+      // Use the Builder class for convenient dialog construction
+      AlertDialog.Builder builder = 
+              new AlertDialog.Builder(getActivity());
+      builder.setTitle("Delete Route?");
+      builder.setMessage("Deleting a route is not reversible.");
+      builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+          dialog.dismiss();
+        }
+      });
+
+      builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+          storage.deleteRoute(route);
+          dialog.dismiss();
+          activity.finish();
+        }
+      });
+
+      return builder.create();
+    }
+  }
+
   public static class RouteSettingsDialogFragment extends DialogFragment {
     private final Route route;
     private final Activity activity;
     private Place place;
     private PlaceStorage storage;
     
-    public RouteSettingsDialogFragment(Route route, Place place, PlaceStorage storage, Activity activity) {
+    public RouteSettingsDialogFragment(
+        Route route, Place place, PlaceStorage storage, Activity activity) {
       this.route = route;
       this.activity = activity;
       this.place = place;

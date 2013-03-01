@@ -94,7 +94,7 @@ public class RouteStorage {
     }
   }
 
-  private void deleteRoute(Route route) {
+  public void deleteRoute(Route route) {
     System.err.println("Deleting: " + route.toString());
     database.delete(ROUTE_TABLE, DATE_COLUMN + " = ?", new String[] {"" + route.getEndTime()});  
   }
