@@ -75,7 +75,6 @@ public class RouteStorage {
   public Cursor getRouteCursor() {
     String query = SQLiteQueryBuilder.buildQueryString(
         false,  ROUTE_TABLE, new String[]{DATE_COLUMN + " as _id", PROTO_COLUMN}, null, null, null, DATE_COLUMN + " desc", null);
-    Log.v(TAG, "Reading query: " + query);
     Cursor cursor = database.rawQuery(query, null);
     return cursor;
   }

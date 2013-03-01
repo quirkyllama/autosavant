@@ -40,17 +40,11 @@ public class RouteCursorAdapter extends CursorAdapter {
   @Override
   public void bindView(View view, Context context, Cursor cursor) {
     final Route route = storage.parseFromCursor(cursor);
-    setupListView(view, route, placeStorage);
-    view.setOnClickListener(new OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        System.err.println("Click on route");
-        listener.onClick(route);
-      }
-    });
+    setupListView(view, route, placeStorage, listener);
   }
 
-  public static void setupListView(View view, final Route route, PlaceStorage placeStorage) {
+  public static void setupListView(View view, final Route route, PlaceStorage placeStorage,
+      final RouteClickListener listener) {
     Place to = placeStorage.getPlaceForRoute(RouteUtils.getLastRoutePoint(route));
     Place from = placeStorage.getPlaceForRoute(route.getRoutePoint(0));
     String text = String.format("%s --> %s",
@@ -61,6 +55,18 @@ public class RouteCursorAdapter extends CursorAdapter {
     setText(view, R.id.routeDate, getRouteTimeAgo(view.getContext(), route));
     setText(view, R.id.routeListDistance, getRouteDistance(route));
     setText(view, R.id.routeListTime, getRouteTime(route));
+    View iconView = view.findViewById(R.id.routeListDetails);
+    if (listener != null) {
+      iconView.setOnClickListener(new OnClickListener() {
+        @Override
+        public void onClick(View v) {
+          System.err.println("Click on route");
+          listener.onClick(route);
+        }
+      });
+    } else {
+      iconView.setVisibility(View.GONE);
+    }
   }
 
   private static void setText(View view, int id, String label) {

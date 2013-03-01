@@ -65,7 +65,7 @@ public class ShowRouteMapActivity extends Activity {
     place = storage.getPlaceForRoute(RouteUtils.getLastRoutePoint(route));
     setTitle(RouteCursorAdapter.getRouteTime(route));
     setContentView(R.layout.activity_show_route_map);
-    RouteCursorAdapter.setupListView(findViewById(R.id.routeText), route, storage);
+    RouteCursorAdapter.setupListView(findViewById(R.id.routeDetails), route, storage, null);
     map = ((MapFragment) getFragmentManager().findFragmentById(R.id.bigMap)).getMap();
     map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
     Point size = new Point();
