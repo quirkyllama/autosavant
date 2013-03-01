@@ -15,6 +15,7 @@ import android.location.Location;
 import android.util.Log;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.jjs.autosavant.RouteUtils;
 import com.jjs.autosavant.proto.Place;
 import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.proto.RoutePoint;
@@ -41,15 +42,12 @@ public class PlaceStorage {
   }
 
   public Place getPlaceForRoute(RoutePoint point) {
-    Location parkingSpot = new Location("");
-    parkingSpot.setLatitude(point.getLatitude());
-    parkingSpot.setLongitude(point.getLongitude());
-    
+    Location parkingSpot = RouteUtils.getLocationForRoutePoint(point);    
     List<Place> places = getPlaces();
     Place bestPlace = null;
     double bestDistance = Double.MAX_VALUE;
     for (Place place : places) {
-      Location end = new Location("");
+      Location end = RouteUtils.getLocationForRoutePoint(point);
       end.setLatitude(place.getLatitude());
       end.setLongitude(place.getLongitude());
       double distance = end.distanceTo(parkingSpot);
@@ -72,7 +70,6 @@ public class PlaceStorage {
     Cursor cursor = getPlaceCursor();
     List<Place> places = new ArrayList<Place>();
     while (cursor.moveToNext()) {
-      System.err.println("Reading: " +  places.size());
       byte[] data = cursor.getBlob(1);
       try {
         Place place = Place.parseFrom(data);
@@ -131,7 +128,10 @@ public class PlaceStorage {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int arg1, int arg2) {
-
     }
+  }
+
+  public void update() {
+    places = null;    
   }
 }

@@ -62,7 +62,7 @@ public class ShowRouteMapActivity extends Activity {
       finish();
     }
     storage = new PlaceStorage(this);
-    place = storage.getPlaceForRoute(route.getRoutePoint(route.getRoutePointCount() - 1));
+    place = storage.getPlaceForRoute(RouteUtils.getLastRoutePoint(route));
     setTitle(RouteCursorAdapter.getRouteTime(route));
     setContentView(R.layout.activity_show_route_map);
     RouteCursorAdapter.setupListView(findViewById(R.id.routeText), route, storage);
@@ -138,7 +138,7 @@ public class ShowRouteMapActivity extends Activity {
     MarkerOptions endMarker = new MarkerOptions();
     endMarker.position(latLng);
     String label = place != null ? place.getName() : "Parking Spot";
-    endMarker.title(label + " @ " + RouteCursorAdapter.getRouteTimeAgo(route));
+    endMarker.title(label + " @ " + RouteCursorAdapter.getRouteTimeAgo(this, route));
     endMarker.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher));
     endMarker.anchor(0.5f, 0.5f);
     map.addMarker(endMarker);

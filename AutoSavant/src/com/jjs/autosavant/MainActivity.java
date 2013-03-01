@@ -129,4 +129,11 @@ public class MainActivity extends Activity {
       return builder.create();
     }
   }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    placeStorage.update();
+  }
+  
 }

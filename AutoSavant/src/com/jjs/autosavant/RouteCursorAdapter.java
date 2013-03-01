@@ -21,7 +21,7 @@ public class RouteCursorAdapter extends CursorAdapter {
   private static final long MILLIS_PER_MINUTE = 60 * 1000;
   private static final long MILLIS_PER_HOUR = 60 * MILLIS_PER_MINUTE;
   private static final String DATE_FORMAT = "E, MMMM dd, yyyy h:mmaa";
-  private static final DateFormat dateFormat = new DateFormat();
+  private static java.text.DateFormat dateFormat;
   private final RouteStorage storage;
   private final PlaceStorage placeStorage;
   private final RouteClickListener listener;
@@ -51,27 +51,28 @@ public class RouteCursorAdapter extends CursorAdapter {
   }
 
   public static void setupListView(View view, final Route route, PlaceStorage placeStorage) {
-    Place place = placeStorage.getPlaceForRoute(route.getRoutePoint(route.getRoutePointCount() - 1));
-    TextView dateView = (TextView) view.findViewById(R.id.routeListDate); 
-    String dateString = getRouteTimeAgo(route);
-    if (place != null) {
-      dateString = "To: " + place.getName() + dateString;
-    }
-    
-    dateView.setText(dateString);
-    TextView distanceView = (TextView) view.findViewById(R.id.routeListDistance);
-    String distance = getRouteDistance(route);
-    distanceView.setText(distance);
+    Place to = placeStorage.getPlaceForRoute(RouteUtils.getLastRoutePoint(route));
+    Place from = placeStorage.getPlaceForRoute(route.getRoutePoint(0));
+    String text = String.format("%s --> %s",
+        from != null ? from.getName() : "unknown",
+        to != null ? to.getName() : "unknown");
+            
+    setText(view, R.id.routeLabel, text);
+    setText(view, R.id.routeDate, getRouteTimeAgo(view.getContext(), route));
+    setText(view, R.id.routeListDistance, getRouteDistance(route));
+    setText(view, R.id.routeListTime, getRouteTime(route));
+  }
 
-    TextView timeView = (TextView) view.findViewById(R.id.routeListTime);
-    timeView.setText(getRouteTime(route));
+  private static void setText(View view, int id, String label) {
+    TextView textView = (TextView) view.findViewById(id); 
+    textView.setText(label);
   }
 
   public static String getRouteDistance(final Route route) {
     return String.format("%1.1fmi", route.getDistance() / 1600.0);
   }
 
-  public static String getRouteTimeAgo(final Route route) {
+  public static String getRouteTimeAgo(final Context context, final Route route) {
     long routeStart = route.getStartTime();
     long now = System.currentTimeMillis();
     long ago = now - routeStart;
@@ -81,14 +82,21 @@ public class RouteCursorAdapter extends CursorAdapter {
     } else if (ago < 3 * MILLIS_PER_HOUR) {
       dateString = String.format("%d hours ago", ago / MILLIS_PER_HOUR);
     } else {
-      dateString = dateFormat.format(DATE_FORMAT, route.getEndTime()).toString();
+      dateString = getDateFormat(context).format(route.getEndTime());
     }
     return dateString;
   }
 
+  private static java.text.DateFormat getDateFormat(Context context) {
+    if (dateFormat == null) {
+      dateFormat = DateFormat.getDateFormat(context);
+    }
+    return dateFormat;
+  }
+
   public static String getRouteTime(final Route route) {
     long routeTime = route.getEndTime() - route.getStartTime();;
-    String time = String.format("Time: %d minutes", routeTime / MILLIS_PER_MINUTE);
+    String time = String.format("%d minutes", routeTime / MILLIS_PER_MINUTE);
     return time;
   }
 

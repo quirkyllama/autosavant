@@ -19,6 +19,8 @@ public class RouteTracker implements LocationListener {
   private static final long MAX_TIME_WAIT_LAST_LOCATION = 15000;
   private static final long WAIT_BEFORE_END_MILLIS = 120 * 1000;
   private static final long MIN_ROUTE_TIME = 2 * 60 * 1000;
+  private static final long MIN_ROUTE_DISTANCE = 300;  
+  private static final int MIN_ROUTE_POINTS = 10;
   
   private enum State {
     NONE,
@@ -123,8 +125,11 @@ public class RouteTracker implements LocationListener {
     }
     routeBuilder.setEndTime(System.currentTimeMillis());   
 
-    if (routeBuilder.getEndTime() - routeBuilder.getStartTime() < MIN_ROUTE_TIME) {
-      Log.v(TAG, "Route too short");
+    if (routeBuilder.getEndTime() - routeBuilder.getStartTime() < MIN_ROUTE_TIME ||
+        routeBuilder.getRoutePointCount() < MIN_ROUTE_POINTS ||
+        RouteUtils.getDistance(routeBuilder.getRoutePoint(0),
+            RouteUtils.getLastRoutePoint(routeBuilder)) < MIN_ROUTE_DISTANCE) {
+      Log.v(TAG, "Route too short: " + routeBuilder.getRoutePointCount());
       locationManager.removeUpdates(this);
       updateState(State.NONE);
     }
