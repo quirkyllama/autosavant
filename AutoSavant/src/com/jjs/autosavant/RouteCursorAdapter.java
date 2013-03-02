@@ -1,6 +1,7 @@
 package com.jjs.autosavant;
 
 import com.jjs.autosavant.R;
+import com.jjs.autosavant.RouteSorter.RouteContainer;
 import com.jjs.autosavant.proto.Place;
 import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.storage.PlaceStorage;
@@ -14,33 +15,49 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.CursorAdapter;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
-public class RouteCursorAdapter extends CursorAdapter {
+public class RouteCursorAdapter extends ArrayAdapter<RouteContainer> {
   private static final long MILLIS_PER_MINUTE = 60 * 1000;
   private static final long MILLIS_PER_HOUR = 60 * MILLIS_PER_MINUTE;
-  private static final String DATE_FORMAT = "E, MMMM dd, yyyy h:mmaa";
   private static java.text.DateFormat dateFormat;
-  private final RouteStorage storage;
+//  private final RouteStorage storage;
   private final PlaceStorage placeStorage;
   private final RouteClickListener listener;
+  private final Activity activity;
   
   public interface RouteClickListener {
     public void onClick(Route route);
   }
   
-  public RouteCursorAdapter(Context context, RouteStorage storage, PlaceStorage placeStorage, RouteClickListener listener) {
-    super(context, storage.getRouteCursor(), FLAG_REGISTER_CONTENT_OBSERVER);
-    this.storage = storage;
+  public RouteCursorAdapter(Activity activity, RouteStorage storage, PlaceStorage placeStorage,
+      RouteClickListener listener) {
+    super(activity, R.layout.route_list_item, 0, 
+        RouteSorter.getSorter(activity, storage, placeStorage, RouteSorter.SortBy.DATE_DESC));
     this.listener = listener;
+    this.activity = activity;
     this.placeStorage = placeStorage;
   }
 
   @Override
-  public void bindView(View view, Context context, Cursor cursor) {
-    final Route route = storage.parseFromCursor(cursor);
-    setupListView(view, route, placeStorage, listener);
+  public View getView(int index, View view, ViewGroup viewGroup) {
+    RouteContainer routeContainer = getItem(index);
+    if (routeContainer.getRoute() != null) {
+      if (view == null || view instanceof TextView) {
+        view = activity.getLayoutInflater().inflate(R.layout.route_list_item, null);
+      }
+      setupListView(view, routeContainer.getRoute(), placeStorage, listener);
+    } else {
+      if (view == null || !(view instanceof TextView)) {
+        view = activity.getLayoutInflater().inflate(R.layout.route_list_divider, null);
+      }
+      ((TextView) view).setText(routeContainer.getDivider());
+    }
+    
+    return view;
   }
 
   public static void setupListView(View view, final Route route, PlaceStorage placeStorage,
@@ -52,7 +69,7 @@ public class RouteCursorAdapter extends CursorAdapter {
         to != null ? to.getName() : "unknown");
             
     setText(view, R.id.routeLabel, text);
-    setText(view, R.id.routeDate, getRouteTimeAgo(view.getContext(), route));
+    //setText(view, R.id.routeDate, getRouteTimeAgo(view.getContext(), route));
     setText(view, R.id.routeListDistance, getRouteDistance(route));
     setText(view, R.id.routeListTime, getRouteTime(route));
     View iconView = view.findViewById(R.id.routeListDetails);
@@ -93,7 +110,7 @@ public class RouteCursorAdapter extends CursorAdapter {
     return dateString;
   }
 
-  private static java.text.DateFormat getDateFormat(Context context) {
+  public static java.text.DateFormat getDateFormat(Context context) {
     if (dateFormat == null) {
       dateFormat = DateFormat.getDateFormat(context);
     }
@@ -104,11 +121,5 @@ public class RouteCursorAdapter extends CursorAdapter {
     long routeTime = route.getEndTime() - route.getStartTime();;
     String time = String.format("%d minutes", routeTime / MILLIS_PER_MINUTE);
     return time;
-  }
-
-  @Override
-  public View newView(Context context, Cursor cursor, ViewGroup parent) {
-    LayoutInflater inflater = ((Activity) context).getLayoutInflater();
-    return inflater.inflate(R.layout.route_list_item, parent, false);
   }
 }

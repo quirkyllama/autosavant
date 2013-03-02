@@ -19,7 +19,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.widget.ListView;
-import android.widget.TextView;
 
 public class MainActivity extends Activity {
   private RouteStorage routeStorage;
