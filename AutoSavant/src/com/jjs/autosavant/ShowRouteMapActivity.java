@@ -1,5 +1,6 @@
 package com.jjs.autosavant;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -31,6 +32,7 @@ import com.jjs.autosavant.proto.RoutePoint;
 import com.jjs.autosavant.storage.PlaceStorage;
 import com.jjs.autosavant.storage.RouteStorage;
 
+@SuppressLint("ValidFragment")
 public class ShowRouteMapActivity extends Activity {
   public static final String SHOW_ROUTE_EXTRA_PROTO = "ShowRouteProto";
   private static final String TAG = "ShowRouteMap";
@@ -58,7 +60,12 @@ public class ShowRouteMapActivity extends Activity {
       finish();
     }
     storage = new PlaceStorage(this);
-    place = storage.getPlaceForRoute(RouteUtils.getLastRoutePoint(route));
+    // Ug, this is unfortunate.
+    if (route.getRoutePointCount() == 0) {
+      place = Place.newBuilder().setLatitude(0).setLongitude(0).build();
+    } else {
+      place = storage.getPlaceForRoute(RouteUtils.getLastRoutePoint(route));
+    }
     setTitle(RouteCursorAdapter.getRouteTime(route));
     setContentView(R.layout.activity_show_route_map);
     RouteCursorAdapter.setupListView(findViewById(R.id.routeDetails), route, storage, null);
@@ -158,7 +165,8 @@ public class ShowRouteMapActivity extends Activity {
     dialogFragment.show(getFragmentManager(), "DeleteRoute");
   }
 
-  public static class DeleteDialogFragment extends DialogFragment {
+  @SuppressLint("ValidFragment")
+public static class DeleteDialogFragment extends DialogFragment {
     private final Route route;
     private RouteStorage storage;
     private Activity activity;
@@ -196,7 +204,8 @@ public class ShowRouteMapActivity extends Activity {
     }
   }
 
-  public static class RouteSettingsDialogFragment extends DialogFragment {
+  @SuppressLint("ValidFragment")
+public static class RouteSettingsDialogFragment extends DialogFragment {
     private final Route route;
     private final Activity activity;
     private Place place;

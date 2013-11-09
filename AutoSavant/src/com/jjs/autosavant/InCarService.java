@@ -4,12 +4,14 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationCompat.Builder;
@@ -147,7 +149,7 @@ public class InCarService extends Service {
         notification
         .setContentIntent(pendingIntent)
         .setTicker(ticker)
-        .setContentTitle("Click to view parking spot")
+        .setContentTitle("Click to view parking spot.")
         .setContentText(
             String.format("Distance: %1.1f miles\nTime: %d minutes", 
                 distance / 1600f, time / 60000));
@@ -159,6 +161,15 @@ public class InCarService extends Service {
   }
 
   public PendingIntent createPendingRouteIntent(Route route) {
+    RoutePoint point = RouteUtils.getLastRoutePoint(route);
+    Intent intent = new Intent(Intent.ACTION_VIEW, 
+        Uri.parse("http://maps.google.com/maps?daddr=" +
+            point.getLatitude() + "," + point.getLongitude() + "&dirflg=w"));
+    intent.setComponent(new ComponentName("com.google.android.apps.maps", 
+        "com.google.android.maps.MapsActivity"));
+    startActivity(intent);
+    
+    
     Intent mapIntent = new Intent(this, ShowRouteMapActivity.class);
     mapIntent.putExtra(ShowRouteMapActivity.SHOW_ROUTE_EXTRA_PROTO, route.toByteArray());
     PendingIntent pendingIntent = 

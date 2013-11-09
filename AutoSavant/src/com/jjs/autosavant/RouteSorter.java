@@ -7,19 +7,34 @@ import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import android.content.Context;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.jjs.autosavant.proto.Place;
 import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.storage.PlaceStorage;
 import com.jjs.autosavant.storage.RouteStorage;
 
 public class RouteSorter {
   public enum SortBy {
-    DATE_ASC,
-    DATE_DESC,
+    DATE_DESC("Date (Newest)"),   
+    DATE_ASC("Date (Oldest)"),
+    FROM("Starting Place"),
+    TO("Destination");
+    
+    private String label;
+    
+    SortBy(String label) {
+     this.label = label; 
+    }
+    
+    public String toString() {
+      return label;
+    }
   }
     
   public static List<RouteContainer> getSorter(
@@ -34,9 +49,44 @@ public class RouteSorter {
           return ascending ? delta : -delta;
         }
       });
+      return createList(context, routes, sortBy);
+    } else if (sortBy == SortBy.FROM || sortBy == SortBy.TO) {
+      boolean isFrom = sortBy == SortBy.FROM;
+      List<RouteContainer> routesWithPlaces = Lists.newArrayList();
+      Set<String> places = Sets.newHashSet();
+      for (Route route : routes) {
+        Place place = placeStorage.getPlaceForRoute(
+            isFrom ? route.getRoutePoint(0) : RouteUtils.getLastRoutePoint(route));
+        String label = place == null ? "Unknown" : place.getName();
+        routesWithPlaces.add(new RouteContainer(route, label));
+        if (!places.contains(label)) {
+          places.add(label);
+          routesWithPlaces.add(new RouteContainer(null, label));
+        }
+      }
+      Collections.sort(routesWithPlaces, new Comparator<RouteContainer>() {
+        @Override
+        public int compare(RouteContainer r0, RouteContainer r1) {
+          int compare = r0.getDivider().compareTo(r1.getDivider());
+          if (compare == 0) {
+            if (r0.getRoute() == null) { 
+              return -1;
+            } else if (r1.getRoute() == null) {
+              return 1;
+            } else {
+              return (int) (r1.getRoute().getStartTime() - r0.getRoute().getStartTime());
+            }
+          }
+          return compare;
+        }
+      });
+      return routesWithPlaces;
+    } else {
+      System.err.println("No such SortBy: " + sortBy);
+      return null;
     }
-    return createList(context, routes, sortBy);
   }
+  
   private static String getDate(Route route, DateFormat dateFormat) {
     long time = route.getStartTime();
     long now = System.currentTimeMillis();

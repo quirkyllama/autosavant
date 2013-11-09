@@ -2,6 +2,7 @@ package com.jjs.autosavant;
 
 import com.jjs.autosavant.R;
 import com.jjs.autosavant.RouteSorter.RouteContainer;
+import com.jjs.autosavant.RouteSorter.SortBy;
 import com.jjs.autosavant.proto.Place;
 import com.jjs.autosavant.proto.Route;
 import com.jjs.autosavant.storage.PlaceStorage;
@@ -34,9 +35,9 @@ public class RouteCursorAdapter extends ArrayAdapter<RouteContainer> {
   }
   
   public RouteCursorAdapter(Activity activity, RouteStorage storage, PlaceStorage placeStorage,
-      RouteClickListener listener) {
+      SortBy sortBy, RouteClickListener listener) {
     super(activity, R.layout.route_list_item, 0, 
-        RouteSorter.getSorter(activity, storage, placeStorage, RouteSorter.SortBy.DATE_DESC));
+        RouteSorter.getSorter(activity, storage, placeStorage, sortBy));
     this.listener = listener;
     this.activity = activity;
     this.placeStorage = placeStorage;

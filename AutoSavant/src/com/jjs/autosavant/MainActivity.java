@@ -18,16 +18,22 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Spinner;
 
 public class MainActivity extends Activity {
   private RouteStorage routeStorage;
   private PlaceStorage placeStorage;
   private BluetoothListener bluetoothListener;
+  private RouteSorter.SortBy sortOrder;
   
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    sortOrder = RouteSorter.SortBy.DATE_DESC;
     routeStorage = new RouteStorage(this);
     routeStorage.cleanRoutes();
     placeStorage = new PlaceStorage(this);
@@ -41,8 +47,32 @@ public class MainActivity extends Activity {
   private void showListView() {
     setContentView(R.layout.activity_config);
     final ListView listView = (ListView) findViewById(R.id.routeList);
+    final View header = getLayoutInflater().inflate(R.layout.route_list_sort_by, null);
+    final Spinner spinner = (Spinner) header.findViewById(R.id.sortBySpinner);
+    ArrayAdapter<RouteSorter.SortBy> sortByChoices = new ArrayAdapter<RouteSorter.SortBy>(
+            this,  R.layout.route_list_sort_by_item, RouteSorter.SortBy.values());
+    sortByChoices.setDropDownViewResource(R.layout.route_list_sort_by_item);
+    spinner.setAdapter(sortByChoices);
+    spinner.setSelection(sortOrder.ordinal());
+    spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+      @Override
+      public void onItemSelected(AdapterView<?> adapter, View view, int index, long id) {
+        sortOrder = RouteSorter.SortBy.values()[index];
+        setListViewAdapter(listView);
+      }
+
+      @Override
+      public void onNothingSelected(AdapterView<?> arg0) {
+      }
+    });
+    listView.addHeaderView(header);
+    setListViewAdapter(listView);
+  }
+
+  public void setListViewAdapter(final ListView listView) {
     listView.setAdapter(
-        new RouteCursorAdapter(this, routeStorage, placeStorage, new RouteClickListener() {
+        new RouteCursorAdapter(this, routeStorage, placeStorage, sortOrder,
+            new RouteClickListener() {
       @Override
       public void onClick(Route route) {
         Intent intent = new Intent(MainActivity.this, ShowRouteMapActivity.class);

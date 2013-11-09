@@ -25,18 +25,7 @@
                 android:layout_height="wrap_content"
                 android:text="label"
                 android:textAppearance="?android:attr/textAppearanceMedium" />
-<!-- 
-            <TextView
-                android:id="@+id/routeDate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentRight="true"
-                android:layout_alignParentTop="true"
-                android:layout_gravity="right"
-                android:layout_marginTop="2dp"
-                android:text="date"
-                android:textAppearance="?android:attr/textAppearanceSmall" />
- -->        </RelativeLayout>
+        </RelativeLayout>
 
         <RelativeLayout
             android:layout_width="match_parent"
