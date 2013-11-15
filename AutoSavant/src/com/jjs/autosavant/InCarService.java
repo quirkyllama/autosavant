@@ -1,6 +1,5 @@
 package com.jjs.autosavant;
 
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -97,16 +96,19 @@ public class InCarService extends Service {
     long time = System.currentTimeMillis()- routeBuilder.getStartTime();
     String content = String.format("Time: %d minutes", time / 60000);
     String body = String.format("Distance: %1.1fmiles", distance / METERS_TO_MILES);
-    Notification notification = new NotificationCompat.Builder(this)
+    Builder notification = new NotificationCompat.Builder(this)
         .setSmallIcon(R.drawable.ic_stat_parking_spot)
-        .setAutoCancel(true)
+        .setAutoCancel(false)
+        .setOngoing(true)
         .setTicker("AutoSavant Running")
         .setContentTitle(content)
-        .setContentText(body)
-        .setContentIntent(createPendingRouteIntent(routeBuilder.build()))
-        .build();
-    
-    notificationManager.notify(NOTIFICATION_ID, notification);
+        .setContentText(body);
+
+    if (routeBuilder.getRoutePointCount() > 0) {
+      notification.setContentIntent(createPendingRouteIntent(routeBuilder.build()));
+    }
+
+    notificationManager.notify(NOTIFICATION_ID, notification.build());
   }
 
   public void saveLastLocation(Route.Builder routeBuilder) {
@@ -167,14 +169,8 @@ public class InCarService extends Service {
             point.getLatitude() + "," + point.getLongitude() + "&dirflg=w"));
     intent.setComponent(new ComponentName("com.google.android.apps.maps", 
         "com.google.android.maps.MapsActivity"));
-    startActivity(intent);
-    
-    
-    Intent mapIntent = new Intent(this, ShowRouteMapActivity.class);
-    mapIntent.putExtra(ShowRouteMapActivity.SHOW_ROUTE_EXTRA_PROTO, route.toByteArray());
-    PendingIntent pendingIntent = 
-        PendingIntent.getActivity(this, 0, mapIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-    return pendingIntent;
+ 
+    return PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
   }
 
   private double calculateDistance(Route.Builder route) {

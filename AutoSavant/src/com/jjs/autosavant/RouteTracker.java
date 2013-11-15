@@ -34,7 +34,7 @@ public class RouteTracker implements LocationListener {
   private final Route.Builder routeBuilder;
 
   private State state;
-  private long lastLocationTime = 0;
+  private Location lastGoodLocation;
   
   public RouteTracker(LocationManager locationManager, InCarService service) {
     this.locationManager = locationManager;
@@ -79,9 +79,23 @@ public class RouteTracker implements LocationListener {
     
     service.postNotification(routeBuilder);
 
-    if (location.getAccuracy() < MIN_DISTANCE_ACCURACY ||
-        System.currentTimeMillis() - routeBuilder.getEndTime() > MAX_TIME_WAIT_LAST_LOCATION) {
-      lastLocationTime = location.getTime(); 
+    if(location.getAccuracy() > MIN_DISTANCE_ACCURACY) {
+      Log.v(TAG, "Ignoring inaccurate update: " + location.getAccuracy());
+      return;
+    }
+    
+    if (lastGoodLocation != null) {
+      float distance = lastGoodLocation.distanceTo(location);
+      long timeMillis = location.getTime() - lastGoodLocation.getTime();
+      float kph = distance / timeMillis * 3600;
+      Log.v(TAG, "KPH: " + kph);
+      if (kph > 200) {
+        return;
+      }
+    }
+    
+    if (System.currentTimeMillis() - routeBuilder.getEndTime() > MAX_TIME_WAIT_LAST_LOCATION) {
+      lastGoodLocation = location;
       routeBuilder.addRoutePointBuilder()
           .setTime(location.getTime())
           .setLatitude((float) location.getLatitude())
@@ -135,7 +149,7 @@ public class RouteTracker implements LocationListener {
     }
 
     long timeSinceLocation = 
-        System.currentTimeMillis() - lastLocationTime;
+        System.currentTimeMillis() - (lastGoodLocation != null ? lastGoodLocation.getTime() : 0);
     if (timeSinceLocation < MAX_TIME_SINCE_LAST_LOCATION) {
       locationManager.removeUpdates(this);
       updateState(State.WAIT_FOR_END);
